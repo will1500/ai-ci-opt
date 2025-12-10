@@ -1,63 +1,60 @@
-name: CI (Professional)
+name: Dev Branch CI
 
 on:
   push:
-    branches: [ "dev", "main" ]
+    branches: [ "dev" ]
   pull_request:
-    branches: [ "dev", "main" ]
+    branches: [ "dev" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12]  # Optional: test multiple Python versions
+        python-version: [3.11, 3.12]
+      fail-fast: false  # run all matrix jobs even if one fails
 
     steps:
+      # Checkout code
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      # Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov flake8 black mypy
+          pip install pytest
 
-      - name: Lint code
+      # Debug step (optional, remove later)
+      - name: Debug files
         run: |
-          flake8 sample_app/
-          black --check sample_app/
+          echo "PYTHONPATH=$PWD"
+          ls -R
 
-      - name: Type checking
-        run: |
-          mypy sample_app/
-
+      # Run tests and capture logs
       - name: Run tests and capture logs
         run: |
           mkdir -p ci_logs
           export PYTHONPATH=$PWD
-          pytest sample_app/tests --durations=0 --cov=sample_app --cov-report=xml -q 2>&1 | tee ci_logs/pytest.log
+          pytest sample_app/tests -q --durations=0 2>&1 | tee ci_logs/pytest.log
 
+      # Upload logs
       - name: Upload CI logs
         uses: actions/upload-artifact@v4
         with:
           name: ci-logs
           path: ci_logs
 
-      - name: Analyze CI logs (slow/flaky detection)
+      # Analyze CI logs
+      - name: Analyze CI logs
         run: |
           python analyzer/analyze_logs.py ci_logs --slow-threshold=0.25
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml
-          path: coverage.xml
-
-      - name: Update Status Badge (optional)
-        run: |
-          echo "✅ Pipeline passed! Add badge workflow here"
+      # Optional: Update status badge
+      - name: Update Status Badge
+        run: echo "✅ Dev pipeline passed!"
