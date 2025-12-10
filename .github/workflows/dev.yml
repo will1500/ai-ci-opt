@@ -1,10 +1,10 @@
-name: Main Branch CI
+name: Dev Branch CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 jobs:
   test:
@@ -34,12 +34,4 @@ jobs:
         with:
           name: ci-logs
           path: ci_logs
-
-      - name: Analyze CI logs
-        run: |
-          python analyzer/analyze_logs.py ci_logs --slow-threshold=0.25
-
-      - name: Update Status Badge (optional)
-        run: |
-          echo "✅ Pipeline passed! Add badge workflow here"
 

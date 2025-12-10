@@ -2,12 +2,12 @@
 
 ## Summary
 
-- **Total Tests:** 1
-- ✅ Passed: 0
+- **Total Tests:** 3
+- ✅ Passed: 3
 - ❌ Failed: 0
 - ⚠️ Skipped: 0
-- 🔥 Errors: 1
-- ⏱️ Duration: 0.15s
+- 🔥 Errors: 0
+- ⏱️ Duration threshold for slow tests: 0.25s
 
 ---
 
@@ -15,31 +15,17 @@
 
 No slow tests detected.
 
+---
+
+## Flaky tests (skipped or intermittent failures)
+
+No flaky tests detected.
 
 ---
 
 ## Raw Pytest Output
 
 ```
-============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /home/runner/work/ai-ci-opt/ai-ci-opt
-collected 0 items / 1 error
-
-==================================== ERRORS ====================================
-_______________ ERROR collecting sample_app/tests/test_sample.py _______________
-ImportError while importing test module '/home/runner/work/ai-ci-opt/ai-ci-opt/sample_app/tests/test_sample.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-sample_app/tests/test_sample.py:2: in <module>
-    from sample_app.app import add
-E   ModuleNotFoundError: No module named 'sample_app'
-=========================== short test summary info ============================
-ERROR sample_app/tests/test_sample.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-=============================== 1 error in 0.15s ===============================
-
+...                                                                      [100%]
+3 passed in 0.01s
 ```
