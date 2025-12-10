@@ -12,14 +12,13 @@ jobs:
     strategy:
       matrix:
         python-version: [3.11, 3.12]
-      fail-fast: false  # run all matrix jobs even if one fails
 
     steps:
-      # Checkout code
+      # Checkout the repo
       - uses: actions/checkout@v4
 
       # Set up Python
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -30,12 +29,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
 
-      # Debug step (optional, remove later)
-      - name: Debug files
-        run: |
-          echo "PYTHONPATH=$PWD"
-          ls -R
-
       # Run tests and capture logs
       - name: Run tests and capture logs
         run: |
@@ -43,11 +36,11 @@ jobs:
           export PYTHONPATH=$PWD
           pytest sample_app/tests -q --durations=0 2>&1 | tee ci_logs/pytest.log
 
-      # Upload logs
+      # Upload CI logs (unique per Python version)
       - name: Upload CI logs
         uses: actions/upload-artifact@v4
         with:
-          name: ci-logs
+          name: ci-logs-${{ matrix.python-version }}
           path: ci_logs
 
       # Analyze CI logs
@@ -57,4 +50,5 @@ jobs:
 
       # Optional: Update status badge
       - name: Update Status Badge
-        run: echo "✅ Dev pipeline passed!"
+        run: |
+          echo "✅ Dev pipeline passed for Python ${{ matrix.python-version }}"
