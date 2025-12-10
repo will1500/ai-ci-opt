@@ -19,18 +19,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install pytest
 
       - name: Ensure sample_app is a package
         run: |
+          mkdir -p sample_app
           touch sample_app/__init__.py
 
-      - name: Run tests
+      - name: Run tests (with per-test durations)
         run: |
           mkdir -p ci_logs
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
-          pytest sample_app/tests -q 2>&1 | tee ci_logs/pytest.log
+          # run pytest and include a full durations summary (--durations=0)
+          # Save both the normal pytest output and the durations summary to pytest.log
+          pytest sample_app/tests --durations=0 2>&1 | tee ci_logs/pytest.log
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
