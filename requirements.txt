@@ -1,0 +1,6 @@
+pytest>=9.0
+pytest-cov>=4.0
+flake8>=6.0
+black>=24.0
+mypy>=1.4
+

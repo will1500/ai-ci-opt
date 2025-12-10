@@ -1,18 +1,11 @@
 #!/usr/bin/env python3
-import sys
 import os
-import re
-from pathlib import Path
+import sys
 import argparse
+import re
+from datetime import datetime
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Analyze pytest logs and generate a Markdown report.")
-    parser.add_argument("log_dir", help="Directory containing pytest logs")
-    parser.add_argument("--slow-threshold", type=float, default=0.25, help="Threshold in seconds to flag slow tests")
-    parser.add_argument("--output", default="ci_analysis_report.md", help="Markdown report filename")
-    return parser.parse_args()
-
-def analyze_logs(log_dir, slow_threshold):
+def parse_pytest_log(log_path):
     summary = {
         "total": 0,
         "passed": 0,
@@ -20,74 +13,80 @@ def analyze_logs(log_dir, slow_threshold):
         "skipped": 0,
         "errors": 0,
         "slow_tests": [],
-        "flaky_tests": []
+        "duration": 0.0,
+        "raw_output": "",
     }
 
-    raw_output = []
+    if not os.path.isfile(log_path):
+        print(f"Log file not found: {log_path}")
+        return summary
 
-    for log_file in Path(log_dir).glob("*.log"):
-        with open(log_file) as f:
-            for line in f:
-                raw_output.append(line.rstrip())
-                # Count passed/failed/skipped/errors
-                if re.search(r"\.\s+\[100%\]", line):
-                    summary["passed"] += line.count(".")
-                    summary["total"] += line.count(".")
-                if re.search(r"FAILED", line):
-                    summary["failed"] += 1
-                    summary["total"] += 1
-                if re.search(r"ERROR", line):
-                    summary["errors"] += 1
-                    summary["total"] += 1
-                if re.search(r"skipped", line, re.IGNORECASE):
-                    summary["skipped"] += 1
-                    summary["flaky_tests"].append(line.strip())
+    with open(log_path, "r") as f:
+        content = f.read()
+        summary["raw_output"] = content
 
-                # Capture slow tests like: test_example.py::test_func 0.45s
-                slow_match = re.search(r"(\S+::\S+)\s+(\d+\.\d+)s", line)
-                if slow_match:
-                    test_name, duration = slow_match.groups()
-                    duration = float(duration)
-                    if duration >= slow_threshold:
-                        summary["slow_tests"].append((test_name, duration))
+    # Total tests and status
+    total_match = re.search(r"collected (\d+) items", content)
+    if total_match:
+        summary["total"] = int(total_match.group(1))
 
-    return summary, raw_output
+    summary["passed"] = len(re.findall(r"\.\.\.", content))
+    summary["failed"] = len(re.findall(r"F", content))
+    summary["skipped"] = len(re.findall(r"s", content))
+    summary["errors"] = len(re.findall(r"E", content))
 
-def generate_markdown(summary, raw_output, output_file, slow_threshold):
+    # Duration
+    duration_match = re.search(r"in ([0-9.]+)s", content)
+    if duration_match:
+        summary["duration"] = float(duration_match.group(1))
+
+    # Slow tests
+    slow_matches = re.findall(r"(\d+\.\d+)s\s+(.+)", content)
+    for dur, test_name in slow_matches:
+        summary["slow_tests"].append({"test": test_name.strip(), "duration": float(dur)})
+
+    return summary
+
+def generate_markdown_report(summary, slow_threshold=0.25, output_file="ci_analysis_report.md"):
     with open(output_file, "w") as f:
         f.write("# 📊 CI Test Analysis Report\n\n")
+        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write("## Summary\n\n")
         f.write(f"- **Total Tests:** {summary['total']}\n")
         f.write(f"- ✅ Passed: {summary['passed']}\n")
         f.write(f"- ❌ Failed: {summary['failed']}\n")
         f.write(f"- ⚠️ Skipped: {summary['skipped']}\n")
         f.write(f"- 🔥 Errors: {summary['errors']}\n")
-        f.write(f"- ⏱️ Duration threshold for slow tests: {slow_threshold}s\n\n")
+        f.write(f"- ⏱️ Duration: {summary['duration']}s\n\n")
 
-        f.write("---\n\n## Slow tests (>{}s)\n\n".format(slow_threshold))
-        if summary["slow_tests"]:
-            for test_name, duration in summary["slow_tests"]:
-                f.write(f"- ⏳ {test_name}: {duration:.2f}s\n")
+        # Slow tests
+        f.write("---\n\n## Slow tests (>={}s)\n\n".format(slow_threshold))
+        slow_tests = [t for t in summary["slow_tests"] if t["duration"] > slow_threshold]
+        if slow_tests:
+            for t in slow_tests:
+                f.write(f"- {t['test']}: {t['duration']}s\n")
         else:
             f.write("No slow tests detected.\n")
+        f.write("\n---\n\n")
 
-        f.write("\n---\n\n## Flaky tests (skipped or intermittent failures)\n\n")
-        if summary["flaky_tests"]:
-            for test in summary["flaky_tests"]:
-                f.write(f"- ⚠️ {test}\n")
-        else:
-            f.write("No flaky tests detected.\n")
-
-        f.write("\n---\n\n## Raw Pytest Output\n\n```\n")
-        f.write("\n".join(raw_output))
+        # Raw pytest output
+        f.write("## Raw Pytest Output\n\n```\n")
+        f.write(summary["raw_output"])
         f.write("\n```\n")
 
     print(f"✅ Analysis complete: {output_file} (slow threshold = {slow_threshold}s)")
 
 def main():
-    args = parse_args()
-    summary, raw_output = analyze_logs(args.log_dir, args.slow_threshold)
-    generate_markdown(summary, raw_output, args.output, args.slow_threshold)
+    parser = argparse.ArgumentParser(description="Analyze pytest logs and generate a Markdown report")
+    parser.add_argument("log_dir", help="Directory containing pytest logs")
+    parser.add_argument("--slow-threshold", type=float, default=0.25, help="Threshold in seconds for slow tests")
+    parser.add_argument("--output", default="ci_analysis_report.md", help="Output Markdown file")
+    args = parser.parse_args()
+
+    log_dir = args.log_dir
+    pytest_log = os.path.join(log_dir, "pytest.log")
+    summary = parse_pytest_log(pytest_log)
+    generate_markdown_report(summary, slow_threshold=args.slow_threshold, output_file=args.output)
 
 if __name__ == "__main__":
     main()
