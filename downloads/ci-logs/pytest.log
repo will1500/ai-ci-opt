@@ -1,0 +1,16 @@
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting sample_app/tests/test_sample.py _______________
+ImportError while importing test module '/home/runner/work/ai-ci-opt/ai-ci-opt/sample_app/tests/test_sample.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sample_app/tests/test_sample.py:2: in <module>
+    from sample_app.app import add
+E   ImportError: cannot import name 'add' from 'sample_app.app' (/home/runner/work/ai-ci-opt/ai-ci-opt/sample_app/app.py)
+=========================== short test summary info ============================
+ERROR sample_app/tests/test_sample.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.14s
