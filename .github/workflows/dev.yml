@@ -1,45 +1,54 @@
-name: Main Branch CI
+name: Dev Branch CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
 
     steps:
+      # Checkout the repo
       - uses: actions/checkout@v4
 
+      # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
+      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest
 
+      # Run tests and capture logs
       - name: Run tests and capture logs
         run: |
           mkdir -p ci_logs
           export PYTHONPATH=$PWD
           pytest sample_app/tests -q --durations=0 2>&1 | tee ci_logs/pytest.log
 
+      # Upload CI logs (unique per Python version)
       - name: Upload CI logs
         uses: actions/upload-artifact@v4
         with:
-          name: ci-logs
+          name: ci-logs-${{ matrix.python-version }}
           path: ci_logs
 
+      # Analyze CI logs
       - name: Analyze CI logs
         run: |
           python analyzer/analyze_logs.py ci_logs --slow-threshold=0.25
 
-      - name: Update Status Badge (optional)
+      # Optional: Update status badge
+      - name: Update Status Badge
         run: |
-          echo "✅ Pipeline passed! Add badge workflow here"
-
+          echo "✅ Dev pipeline passed for Python ${{ matrix.python-version }}"
